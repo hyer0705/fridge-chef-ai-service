@@ -2,39 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Fresh cooking-themed design system with warm, inviting colors */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Light theme - Fresh and warm cooking colors */
+    --background: 35 100% 98%;
+    --foreground: 25 15% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 25 15% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 25 15% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary: Fresh green like herbs and vegetables */
+    --primary: 145 65% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 145 75% 55%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary: Warm orange like cooked dishes */
+    --secondary: 25 95% 95%;
+    --secondary-foreground: 25 30% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted: Soft cream tones */
+    --muted: 35 20% 96%;
+    --muted-foreground: 25 8% 50%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent: Warm golden like bread crust */
+    --accent: 42 85% 88%;
+    --accent-foreground: 25 30% 25%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 35 15% 88%;
+    --input: 35 15% 94%;
+    --ring: 145 65% 45%;
+
+    /* Cooking theme specific colors */
+    --chef-orange: 25 95% 65%;
+    --fresh-green: 145 65% 45%;
+    --warm-cream: 35 30% 95%;
+    --spice-red: 15 85% 60%;
+    --herb-green: 110 40% 55%;
+
+    /* Gradients for beautiful effects */
+    --gradient-hero: linear-gradient(135deg, hsl(145 65% 45%), hsl(25 95% 65%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(35 20% 98%));
+    --gradient-button: linear-gradient(135deg, hsl(145 75% 50%), hsl(145 65% 40%));
+    
+    /* Shadows with food theme colors */
+    --shadow-soft: 0 4px 12px hsl(145 65% 45% / 0.1);
+    --shadow-glow: 0 8px 32px hsl(145 75% 55% / 0.2);
+    --shadow-warm: 0 6px 20px hsl(25 95% 65% / 0.15);
 
     --radius: 0.5rem;
 

@@ -26,7 +26,8 @@ export default {
 				foreground: 'hsl(var(--foreground))',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
-					foreground: 'hsl(var(--primary-foreground))'
+					foreground: 'hsl(var(--primary-foreground))',
+					glow: 'hsl(var(--primary-glow))'
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
@@ -51,6 +52,22 @@ export default {
 				card: {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
+				},
+				// Cooking theme colors
+				chef: {
+					orange: 'hsl(var(--chef-orange))'
+				},
+				fresh: {
+					green: 'hsl(var(--fresh-green))'
+				},
+				warm: {
+					cream: 'hsl(var(--warm-cream))'
+				},
+				spice: {
+					red: 'hsl(var(--spice-red))'
+				},
+				herb: {
+					green: 'hsl(var(--herb-green))'
 				},
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
