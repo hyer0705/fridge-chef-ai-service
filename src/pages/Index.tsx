@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { ChefHat, Zap, RotateCcw, Sparkles, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -8,34 +7,20 @@ import RecipeCard from "@/components/RecipeCard";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
 import { useRecipeGenerator } from "@/hooks/useRecipeGenerator";
+import { useRecipeInputs } from "@/hooks/useRecipeInputs";
 
 const Index = () => {
-  // 1. 사용자 입력 상태 관리 (UI와 직접 연결)
-  const [ingredients, setIngredients] = useState(["돼지고기", "김치", "양파"]);
-  const [weather, setWeather] = useState("비 오는 날");
-  const [mood, setMood] = useState("따뜻하고 얼큰한");
-  const [servings, setServings] = useState("2");
-
-  // 2. 비즈니스 로직과 API 통신을 담당하는 커스텀 훅
+  // 입력 상태와 관련된 로직은 모두 useRecipeInputs 훅으로 분리되었습니다.
+  const { inputState, dispatch } = useRecipeInputs();
+  
+  // 출력(레시피 결과) 상태와 관련된 로직은 useRecipeGenerator 훅에 있습니다.
   const { recipes, isLoading, error, generate, clear } = useRecipeGenerator();
 
   const { toast } = useToast();
 
-  // 3. UI 상태 조작 함수들
-  const addIngredient = (ingredient: string) => {
-    setIngredients([...ingredients, ingredient]);
-  };
-
-  const removeIngredient = (ingredientToRemove: string) => {
-    setIngredients(ingredients.filter((ing) => ing !== ingredientToRemove));
-  };
-
   const resetAllInputs = () => {
-    setIngredients([]);
-    setWeather("");
-    setMood("");
-    setServings("1");
-    clear(); // 훅의 clear 함수 호출로 레시피 결과 초기화
+    dispatch({ type: "RESET_INPUTS" });
+    clear(); // 레시피 결과 초기화
     toast({
       title: "입력이 초기화되었습니다",
       description: "새로운 재료로 다시 시작해보세요!",
@@ -43,8 +28,7 @@ const Index = () => {
   };
 
   const handleGenerateClick = () => {
-    const params = { ingredients, weather, mood, servings };
-    generate(params);
+    generate(inputState);
   };
 
   return (
@@ -67,22 +51,26 @@ const Index = () => {
           <p className="text-muted-foreground mb-6">냉장고 속 재료와 당신의 기분을 알려주세요. AI가 완벽한 레시피를 찾아드릴게요!</p>
 
           <div className="space-y-6">
-            <IngredientInput ingredients={ingredients} onAddIngredient={addIngredient} onRemoveIngredient={removeIngredient} />
+            <IngredientInput
+              ingredients={inputState.ingredients}
+              onAddIngredient={(ingredient) => dispatch({ type: "ADD_INGREDIENT", payload: ingredient })}
+              onRemoveIngredient={(ingredient) => dispatch({ type: "REMOVE_INGREDIENT", payload: ingredient })}
+            />
 
             <PreferenceInputs
-              weather={weather}
-              mood={mood}
-              servings={servings}
-              onWeatherChange={setWeather}
-              onMoodChange={setMood}
-              onServingsChange={setServings}
+              weather={inputState.weather}
+              mood={inputState.mood}
+              servings={inputState.servings}
+              onWeatherChange={(value) => dispatch({ type: "SET_WEATHER", payload: value })}
+              onMoodChange={(value) => dispatch({ type: "SET_MOOD", payload: value })}
+              onServingsChange={(value) => dispatch({ type: "SET_SERVINGS", payload: value })}
             />
           </div>
 
           <div className="mt-8 text-center flex flex-col md:flex-row justify-center items-center gap-4">
             <Button
               onClick={handleGenerateClick}
-              disabled={isLoading || ingredients.length < 1}
+              disabled={isLoading || inputState.ingredients.length < 1}
               variant="chef"
               size="xl"
               className="w-full md:w-auto min-w-[200px]"
@@ -106,12 +94,7 @@ const Index = () => {
 
           {isLoading && <LoadingState />}
 
-          {error && (
-            <ErrorState
-              message={error}
-              onRetry={handleGenerateClick}
-            />
-          )}
+          {error && <ErrorState message={error} onRetry={handleGenerateClick} />}
 
           {!isLoading && !error && recipes.length > 0 && (
             <div className="grid md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
