@@ -50,39 +50,45 @@ const Index = () => {
           <h2 className="text-2xl md:text-3xl font-bold text-card-foreground mb-2">어떤 재료로 무엇을 만들어 볼까요?</h2>
           <p className="text-muted-foreground mb-6">냉장고 속 재료와 당신의 기분을 알려주세요. AI가 완벽한 레시피를 찾아드릴게요!</p>
 
-          <div className="space-y-6">
-            <IngredientInput
-              ingredients={inputState.ingredients}
-              onAddIngredient={(ingredient) => dispatch({ type: "ADD_INGREDIENT", payload: ingredient })}
-              onRemoveIngredient={(ingredient) => dispatch({ type: "REMOVE_INGREDIENT", payload: ingredient })}
-            />
+          <form>
+            <fieldset disabled={isLoading}>
+              <legend className="sr-only">레시피 생성 양식</legend>
+              <div className="space-y-6">
+                <IngredientInput
+                  ingredients={inputState.ingredients}
+                  onAddIngredient={(ingredient) => dispatch({ type: "ADD_INGREDIENT", payload: ingredient })}
+                  onRemoveIngredient={(ingredient) => dispatch({ type: "REMOVE_INGREDIENT", payload: ingredient })}
+                />
 
-            <PreferenceInputs
-              weather={inputState.weather}
-              mood={inputState.mood}
-              servings={inputState.servings}
-              onWeatherChange={(value) => dispatch({ type: "SET_WEATHER", payload: value })}
-              onMoodChange={(value) => dispatch({ type: "SET_MOOD", payload: value })}
-              onServingsChange={(value) => dispatch({ type: "SET_SERVINGS", payload: value })}
-            />
-          </div>
+                <PreferenceInputs
+                  weather={inputState.weather}
+                  mood={inputState.mood}
+                  servings={inputState.servings}
+                  onWeatherChange={(value) => dispatch({ type: "SET_WEATHER", payload: value })}
+                  onMoodChange={(value) => dispatch({ type: "SET_MOOD", payload: value })}
+                  onServingsChange={(value) => dispatch({ type: "SET_SERVINGS", payload: value })}
+                />
+              </div>
 
-          <div className="mt-8 text-center flex flex-col md:flex-row justify-center items-center gap-4">
-            <Button
-              onClick={handleGenerateClick}
-              disabled={isLoading || inputState.ingredients.length < 1}
-              variant="chef"
-              size="xl"
-              className="w-full md:w-auto min-w-[200px]"
-            >
-              <Zap className="mr-2" size={20} />
-              {isLoading ? "레시피 생성 중..." : "AI 레시피 생성"}
-            </Button>
-            <Button onClick={resetAllInputs} variant="outline" size="lg" className="w-full md:w-auto">
-              <RotateCcw className="mr-2" size={18} />
-              입력 초기화
-            </Button>
-          </div>
+              <div className="mt-8 text-center flex flex-col md:flex-row justify-center items-center gap-4">
+                <Button
+                  type="button"
+                  onClick={handleGenerateClick}
+                  disabled={isLoading || inputState.ingredients.length < 1}
+                  variant="chef"
+                  size="xl"
+                  className="w-full md:w-auto min-w-[200px]"
+                >
+                  <Zap className="mr-2" size={20} />
+                  {isLoading ? "레시피 생성 중..." : "AI 레시피 생성"}
+                </Button>
+                <Button type="button" onClick={resetAllInputs} variant="outline" size="lg" className="w-full md:w-auto">
+                  <RotateCcw className="mr-2" size={18} />
+                  입력 초기화
+                </Button>
+              </div>
+            </fieldset>
+          </form>
         </div>
 
         {/* Results Section */}
