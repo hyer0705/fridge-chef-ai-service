@@ -1,15 +1,6 @@
 import { ChefHat, Clock, Star, Users, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface Recipe {
-  name: string;
-  time: string;
-  difficulty: string;
-  ingredientsUsed: string[];
-  steps: string[];
-  nutrition: string;
-  servings: string;
-}
+import type { Recipe } from "@/lib/types"; // 공용 타입을 import 합니다.
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -58,18 +49,11 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
         <div className="mb-5">
           <h4 className="font-semibold text-card-foreground mb-2">활용된 재료</h4>
           <div className="flex flex-wrap gap-2">
-            {recipe.ingredientsUsed?.map((ingredient, i) => {
-              // Handle both string and object types for ingredients
-              const ingredientText = typeof ingredient === 'string'
-                ? ingredient
-                : Object.values(ingredient).join(' '); // A simple way to display object content
-
-              return (
-                <span key={i} className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full border border-primary/20">
-                  {ingredientText}
-                </span>
-              );
-            })}
+            {recipe.ingredientsUsed?.map((ingredient, i) => (
+              <span key={i} className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full border border-primary/20">
+                {`${ingredient.name} ${ingredient.quantity}`}
+              </span>
+            ))}
           </div>
         </div>
 
