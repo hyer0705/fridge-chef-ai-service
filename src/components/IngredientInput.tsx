@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Plus, X, Utensils } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import React, { useState } from "react";
+import { Plus, X, Utensils } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface IngredientInputProps {
   ingredients: string[];
@@ -11,28 +11,24 @@ interface IngredientInputProps {
 const Tag = ({ text, onRemove }: { text: string; onRemove: () => void }) => (
   <div className="flex items-center bg-primary/10 text-primary text-sm font-medium mr-2 mb-2 px-3 py-1.5 rounded-full border border-primary/20 hover:bg-primary/20 transition-colors">
     {text}
-    <button 
-      onClick={onRemove} 
-      className="ml-2 text-primary hover:text-primary/80 transition-colors"
-      aria-label={`${text} 제거`}
-    >
+    <button onClick={onRemove} className="ml-2 text-primary hover:text-primary/80 transition-colors" aria-label={`${text} 제거`}>
       <X size={16} />
     </button>
   </div>
 );
 
 export default function IngredientInput({ ingredients, onAddIngredient, onRemoveIngredient }: IngredientInputProps) {
-  const [currentIngredient, setCurrentIngredient] = useState('');
+  const [currentIngredient, setCurrentIngredient] = useState("");
 
   const handleAdd = () => {
     if (currentIngredient.trim() && !ingredients.includes(currentIngredient.trim())) {
       onAddIngredient(currentIngredient.trim());
-      setCurrentIngredient('');
+      setCurrentIngredient("");
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter" && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleAdd();
     }
@@ -58,21 +54,13 @@ export default function IngredientInput({ ingredients, onAddIngredient, onRemove
             className="w-full pl-10 pr-4 py-3 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all bg-background text-foreground"
           />
         </div>
-        <Button 
-          onClick={handleAdd}
-          variant="cream"
-          className="flex-shrink-0"
-        >
+        <Button onClick={handleAdd} variant="cream" className="flex-shrink-0">
           추가
         </Button>
       </div>
       <div className="mt-3 flex flex-wrap">
         {ingredients.map((ingredient, i) => (
-          <Tag 
-            key={i} 
-            text={ingredient} 
-            onRemove={() => onRemoveIngredient(ingredient)} 
-          />
+          <Tag key={i} text={ingredient} onRemove={() => onRemoveIngredient(ingredient)} />
         ))}
       </div>
     </div>
