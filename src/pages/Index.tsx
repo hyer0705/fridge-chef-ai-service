@@ -7,29 +7,21 @@ import PreferenceInputs from "@/components/PreferenceInputs";
 import RecipeCard from "@/components/RecipeCard";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
-import { generateRecipesFromGemini } from "@/lib/gemini";
-
-interface Recipe {
-  name: string;
-  time: string;
-  difficulty: string;
-  ingredientsUsed: string[];
-  steps: string[];
-  nutrition: string;
-  servings: string;
-}
+import { useRecipeGenerator } from "@/hooks/useRecipeGenerator";
 
 const Index = () => {
+  // 1. 사용자 입력 상태 관리 (UI와 직접 연결)
   const [ingredients, setIngredients] = useState(["돼지고기", "김치", "양파"]);
   const [weather, setWeather] = useState("비 오는 날");
   const [mood, setMood] = useState("따뜻하고 얼큰한");
   const [servings, setServings] = useState("2");
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  // 2. 비즈니스 로직과 API 통신을 담당하는 커스텀 훅
+  const { recipes, isLoading, error, generate, clear } = useRecipeGenerator();
 
   const { toast } = useToast();
 
+  // 3. UI 상태 조작 함수들
   const addIngredient = (ingredient: string) => {
     setIngredients([...ingredients, ingredient]);
   };
@@ -43,63 +35,16 @@ const Index = () => {
     setWeather("");
     setMood("");
     setServings("1");
-    setRecipes([]);
-    setError(null);
+    clear(); // 훅의 clear 함수 호출로 레시피 결과 초기화
     toast({
       title: "입력이 초기화되었습니다",
       description: "새로운 재료로 다시 시작해보세요!",
     });
   };
 
-  const generateRecipes = async () => {
-    if (ingredients.length < 1) {
-      setError("레시피를 생성하려면 최소 1개 이상의 재료를 입력해야 합니다.");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setRecipes([]);
-
-    const prompt = `
-      당신은 남은 재료를 활용하여 멋진 요리를 만드는 전문 셰프입니다. 아래 정보를 바탕으로 3가지 다양한 레시피를 제안해주세요.
-      - 보유 재료: ${ingredients.join(", ")}
-      - 날씨: ${weather}
-      - 기분/맛 취향: ${mood}
-      - 인원 수: ${servings}인분
-
-      각 레시피는 다음 정보를 반드시 포함해야 합니다:
-      1. "name": 요리 이름 (창의적이고 매력적으로)
-      2. "time": 예상 조리 시간 (예: "약 30분")
-      3. "difficulty": 난이도 ('초급', '중급', '고급' 중 하나)
-      4. "ingredientsUsed": 제공된 재료 목록 중 실제로 사용된 재료들의 배열. 각 재료는 반드시 수량과 단위를 포함해야 합니다.
-      5. "steps": 단계별 요리 방법 (최대 6단계, 각 단계는 2문장 이하로 간결하게)
-      6. "nutrition": 예상 영양 정보 (칼로리 포함, 예: "약 450kcal")
-      7. "servings": 추천 인원 수 (예: "${servings}인분")
-      
-      전체 응답은 반드시 유효한 JSON 형식이어야 하며, 루트 요소는 "recipes"라는 키를 가진 배열입니다.
-    `;
-
-    try {
-      const responseText = await generateRecipesFromGemini(prompt);
-
-      // Gemini API는 종종 응답에 ```json ... ``` 마크다운을 포함하므로, 순수 JSON만 추출
-      const jsonString = responseText.match(/```json([\s\S]*?)```/)?.[1] || responseText;
-
-      const parsedResponse = JSON.parse(jsonString);
-      const generatedRecipes = parsedResponse.recipes;
-
-      setRecipes(generatedRecipes);
-      toast({
-        title: "레시피가 완성되었습니다! 🍳",
-        description: `${generatedRecipes.length}가지 맛있는 요리를 제안드려요.`,
-      });
-    } catch (e) {
-      console.error(e);
-      setError("레시피 생성 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.");
-    } finally {
-      setIsLoading(false);
-    }
+  const handleGenerateClick = () => {
+    const params = { ingredients, weather, mood, servings };
+    generate(params);
   };
 
   return (
@@ -136,7 +81,7 @@ const Index = () => {
 
           <div className="mt-8 text-center flex flex-col md:flex-row justify-center items-center gap-4">
             <Button
-              onClick={generateRecipes}
+              onClick={handleGenerateClick}
               disabled={isLoading || ingredients.length < 1}
               variant="chef"
               size="xl"
@@ -164,10 +109,7 @@ const Index = () => {
           {error && (
             <ErrorState
               message={error}
-              onRetry={() => {
-                setError(null);
-                generateRecipes();
-              }}
+              onRetry={handleGenerateClick}
             />
           )}
 
