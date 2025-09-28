@@ -6,21 +6,20 @@ import PreferenceInputs from "@/components/PreferenceInputs";
 import RecipeCard from "@/components/RecipeCard";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
+import ProgressDisplay from "@/components/ProgressDisplay";
 import { useRecipeGenerator } from "@/hooks/useRecipeGenerator";
 import { useRecipeInputs } from "@/hooks/useRecipeInputs";
 
 const Index = () => {
-  // 입력 상태와 관련된 로직은 모두 useRecipeInputs 훅으로 분리되었습니다.
   const { inputState, dispatch } = useRecipeInputs();
-  
-  // 출력(레시피 결과) 상태와 관련된 로직은 useRecipeGenerator 훅에 있습니다.
-  const { recipes, isLoading, error, generate, clear } = useRecipeGenerator();
+
+  const { recipes, isLoading, error, progress, isStreaming, generate, clear } = useRecipeGenerator();
 
   const { toast } = useToast();
 
   const resetAllInputs = () => {
     dispatch({ type: "RESET_INPUTS" });
-    clear(); // 레시피 결과 초기화
+    clear();
     toast({
       title: "입력이 초기화되었습니다",
       description: "새로운 재료로 다시 시작해보세요!",
@@ -91,6 +90,9 @@ const Index = () => {
           </form>
         </div>
 
+        {/* Progress Display - 진행률만 표시 */}
+        <ProgressDisplay progress={progress} isStreaming={isStreaming} />
+
         {/* Results Section */}
         <div className="mt-10">
           <h2 className="text-3xl font-bold text-foreground mb-6 flex items-center">
@@ -98,7 +100,7 @@ const Index = () => {
             AI 추천 레시피
           </h2>
 
-          {isLoading && <LoadingState />}
+          {isLoading && !isStreaming && <LoadingState />}
 
           {error && <ErrorState message={error} onRetry={handleGenerateClick} />}
 
@@ -110,7 +112,7 @@ const Index = () => {
             </div>
           )}
 
-          {!isLoading && !error && recipes.length === 0 && (
+          {!isLoading && !error && recipes.length === 0 && !isStreaming && progress === 0 && (
             <div className="text-center py-12 px-6 bg-card rounded-2xl shadow-md border border-border">
               <ChefHat className="mx-auto mb-4 text-muted-foreground" size={48} />
               <h3 className="text-xl font-semibold text-card-foreground mb-2">레시피를 기다리고 있어요</h3>
