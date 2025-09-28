@@ -25,18 +25,129 @@ const createPrompt = (params: RecipeGenerationParams): string => {
     7. "servings": 추천 인원 수 (예: "${servings}인분")
     
     전체 응답은 반드시 유효한 JSON 형식이어야 하며, 루트 요소는 "recipes"라는 키를 가진 배열입니다. 응답에 markdown (\`\`\`json) 래퍼를 포함하지 마세요.
+    
+    응답 형식:
+    {
+      "recipes": [
+        {
+          "name": "요리명",
+          "time": "약 30분",
+          "difficulty": "초급",
+          "ingredientsUsed": [...],
+          "steps": [...],
+          "nutrition": "약 450kcal",
+          "servings": "3인분"
+        }
+      ]
+    }
   `;
 
   return prompt;
 };
 
+const isValidCompleteJSON = (text: string): boolean => {
+  try {
+    const parsed = JSON.parse(text);
+
+    if (parsed && typeof parsed === "object" && Array.isArray(parsed.recipes)) {
+      return true;
+    }
+
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const firstItem = parsed[0];
+      return firstItem && typeof firstItem === "object" && firstItem.name && firstItem.time && firstItem.difficulty;
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+};
+
+const cleanJsonString = (text: string): string => {
+  const withoutMarkdown = text.replace(/```json\s*|\s*```/g, "").trim();
+
+  let cleaned = withoutMarkdown;
+
+  if (cleaned.includes('"name"') && !cleaned.endsWith("}") && !cleaned.endsWith("]")) {
+    const openBraces = (cleaned.match(/{/g) || []).length;
+    const closeBraces = (cleaned.match(/}/g) || []).length;
+    const openBrackets = (cleaned.match(/\[/g) || []).length;
+    const closeBrackets = (cleaned.match(/\]/g) || []).length;
+
+    for (let i = 0; i < openBrackets - closeBrackets; i++) {
+      cleaned += "]";
+    }
+    for (let i = 0; i < openBraces - closeBraces; i++) {
+      cleaned += "}";
+    }
+  }
+
+  return cleaned;
+};
+
 /**
- * Gemini API를 호출하여 레시피를 생성하고 파싱합니다.
- * @param params - 레시피 생성에 필요한 사용자 입력 값들.
- * @returns 생성된 레시피 객체 배열.
- * @throws API 호출 또는 JSON 파싱 실패 시 에러를 발생시킵니다.
+ * JSON 응답의 대략적인 완성도를 계산하는 함수
+ * @param text - 현재까지 받은 텍스트
+ * @returns 0-100 사이의 완성도 퍼센트
  */
-export const generateRecipes = async (params: RecipeGenerationParams): Promise<Recipe[]> => {
+const calculateProgress = (text: string): number => {
+  const cleanText = text.replace(/```json\s*|\s*```/g, "").trim();
+
+  const hasJsonStart = cleanText.startsWith("{") || cleanText.startsWith("[");
+  if (!hasJsonStart) return 5;
+
+  const hasRecipesKey = cleanText.includes('"recipes"') || cleanText.includes('"name"');
+  if (!hasRecipesKey) return 15;
+
+  const nameCount = (cleanText.match(/"name"\s*:/g) || []).length;
+  const expectedRecipes = 3;
+
+  if (nameCount === 0) return 25;
+
+  const requiredFields = ["name", "time", "difficulty", "ingredientsUsed", "steps", "nutrition", "servings"];
+  const totalExpectedFields = expectedRecipes * requiredFields.length;
+
+  let foundFields = 0;
+  requiredFields.forEach((field) => {
+    const matches = cleanText.match(new RegExp(`"${field}"\\s*:`, "g"));
+    foundFields += matches ? matches.length : 0;
+  });
+
+  const fieldProgress = Math.min(foundFields / totalExpectedFields, 1);
+
+  const openBraces = (cleanText.match(/{/g) || []).length;
+  const closeBraces = (cleanText.match(/}/g) || []).length;
+  const openBrackets = (cleanText.match(/\[/g) || []).length;
+  const closeBrackets = (cleanText.match(/\]/g) || []).length;
+
+  const isStructurallyComplete = openBraces === closeBraces && openBrackets === closeBrackets;
+
+  // 기본 25% + 필드 완성도 65% + 구조 완전성 10%
+  const progress = 25 + fieldProgress * 65 + (isStructurallyComplete ? 10 : 0);
+
+  return Math.min(Math.round(progress), 100);
+};
+
+const extractRecipes = (parsedJson: any): Recipe[] => {
+  if (parsedJson.recipes && Array.isArray(parsedJson.recipes)) {
+    return parsedJson.recipes as Recipe[];
+  }
+
+  if (Array.isArray(parsedJson)) {
+    return parsedJson as Recipe[];
+  }
+
+  throw new Error("응답에서 레시피 배열을 찾을 수 없습니다.");
+};
+
+/**
+ * Gemini API를 스트리밍 방식으로 호출하여 레시피를 생성하고 파싱합니다.
+ * @param params - 레시피 생성에 필요한 사용자 입력 값들.
+ * @param onProgress - 진행률을 받는 선택적 콜백 함수 (0-100)
+ * @returns 생성된 레시피 객체 배열.
+ */
+export const generateRecipes = async (params: RecipeGenerationParams, onProgress?: (progress: number) => void): Promise<Recipe[]> => {
   if (params.ingredients.length < 1) {
     throw new Error("레시피를 생성하려면 최소 1개 이상의 재료를 입력해야 합니다.");
   }
@@ -44,21 +155,40 @@ export const generateRecipes = async (params: RecipeGenerationParams): Promise<R
   const prompt = createPrompt(params);
 
   try {
-    const responseText = await generateRecipesFromGemini(prompt);
+    const responseText = await generateRecipesFromGemini(prompt, (chunk: string, fullText: string) => {
+      const progress = calculateProgress(fullText);
+      onProgress?.(progress);
+    });
 
-    // API가 때때로 markdown을 포함하는 경우를 대비한 안전 장치
-    const jsonString = responseText.match(/```json([\s\S]*?)```/)?.[1] || responseText;
+    const cleanedJsonString = cleanJsonString(responseText);
 
-    const parsedResponse = JSON.parse(jsonString);
-
-    if (!parsedResponse.recipes) {
-      throw new Error("API 응답이 예상된 'recipes' 키를 포함하지 않습니다.");
+    if (!isValidCompleteJSON(cleanedJsonString)) {
+      console.error("Invalid or incomplete JSON:", cleanedJsonString);
+      throw new Error("AI 응답이 완전한 JSON 형식이 아닙니다. 다시 시도해주세요.");
     }
 
-    return parsedResponse.recipes as Recipe[];
+    const parsedResponse = JSON.parse(cleanedJsonString);
+
+    const recipes = extractRecipes(parsedResponse);
+
+    if (!recipes || recipes.length === 0) {
+      throw new Error("생성된 레시피가 없습니다.");
+    }
+
+    onProgress?.(100);
+
+    return recipes;
   } catch (error) {
     console.error("Error generating or parsing recipes:", error);
-    // 에러를 다시 던져서 호출 측(커스텀 훅)에서 처리할 수 있도록 함
-    throw new Error("레시피 생성 또는 응답 처리 중 문제가 발생했습니다.");
+
+    if (error instanceof SyntaxError) {
+      throw new Error("AI 응답을 처리하는 중 오류가 발생했습니다. 다시 시도해주세요.");
+    }
+
+    if (error instanceof Error) {
+      throw error;
+    }
+
+    throw new Error("레시피 생성 중 알 수 없는 오류가 발생했습니다.");
   }
 };
