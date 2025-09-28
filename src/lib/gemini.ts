@@ -25,7 +25,6 @@ export const generateRecipesFromGemini = async (prompt: string, onChunk?: (chunk
     for await (const chunk of response) {
       if (chunk.text) {
         fullText += chunk.text;
-        // 스트림 청크와 현재까지의 전체 텍스트를 콜백 함수에 전달
         onChunk?.(chunk.text, fullText);
       }
     }

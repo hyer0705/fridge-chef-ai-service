@@ -1,4 +1,3 @@
-// recipeService.ts
 import { generateRecipesFromGemini } from "@/lib/gemini";
 import type { Recipe, RecipeGenerationParams } from "@/lib/types";
 
@@ -46,21 +45,15 @@ const createPrompt = (params: RecipeGenerationParams): string => {
   return prompt;
 };
 
-/**
- * JSON이 완전한지 확인하는 헬퍼 함수
- */
 const isValidCompleteJSON = (text: string): boolean => {
   try {
     const parsed = JSON.parse(text);
 
-    // recipes 키가 있는 경우
     if (parsed && typeof parsed === "object" && Array.isArray(parsed.recipes)) {
       return true;
     }
 
-    // 직접 배열인 경우 (AI가 recipes 키 없이 배열만 반환한 경우)
     if (Array.isArray(parsed) && parsed.length > 0) {
-      // 첫 번째 요소가 레시피 객체인지 확인
       const firstItem = parsed[0];
       return firstItem && typeof firstItem === "object" && firstItem.name && firstItem.time && firstItem.difficulty;
     }
@@ -71,22 +64,17 @@ const isValidCompleteJSON = (text: string): boolean => {
   }
 };
 
-/**
- * JSON 문자열을 정리하는 헬퍼 함수
- */
 const cleanJsonString = (text: string): string => {
   const withoutMarkdown = text.replace(/```json\s*|\s*```/g, "").trim();
 
   let cleaned = withoutMarkdown;
 
-  // 기본적인 JSON 구조 확인 및 수정
   if (cleaned.includes('"name"') && !cleaned.endsWith("}") && !cleaned.endsWith("]")) {
     const openBraces = (cleaned.match(/{/g) || []).length;
     const closeBraces = (cleaned.match(/}/g) || []).length;
     const openBrackets = (cleaned.match(/\[/g) || []).length;
     const closeBrackets = (cleaned.match(/\]/g) || []).length;
 
-    // 필요한 만큼 닫는 괄호 추가
     for (let i = 0; i < openBrackets - closeBrackets; i++) {
       cleaned += "]";
     }
@@ -106,21 +94,17 @@ const cleanJsonString = (text: string): string => {
 const calculateProgress = (text: string): number => {
   const cleanText = text.replace(/```json\s*|\s*```/g, "").trim();
 
-  // JSON 시작 감지
   const hasJsonStart = cleanText.startsWith("{") || cleanText.startsWith("[");
   if (!hasJsonStart) return 5;
 
-  // 레시피 관련 키워드 감지
   const hasRecipesKey = cleanText.includes('"recipes"') || cleanText.includes('"name"');
   if (!hasRecipesKey) return 15;
 
-  // 레시피 개수 추정 (name 키의 개수로 판단)
   const nameCount = (cleanText.match(/"name"\s*:/g) || []).length;
   const expectedRecipes = 3;
 
   if (nameCount === 0) return 25;
 
-  // 각 레시피의 필드 완성도 체크
   const requiredFields = ["name", "time", "difficulty", "ingredientsUsed", "steps", "nutrition", "servings"];
   const totalExpectedFields = expectedRecipes * requiredFields.length;
 
@@ -132,7 +116,6 @@ const calculateProgress = (text: string): number => {
 
   const fieldProgress = Math.min(foundFields / totalExpectedFields, 1);
 
-  // JSON 완전성 체크
   const openBraces = (cleanText.match(/{/g) || []).length;
   const closeBraces = (cleanText.match(/}/g) || []).length;
   const openBrackets = (cleanText.match(/\[/g) || []).length;
@@ -146,16 +129,11 @@ const calculateProgress = (text: string): number => {
   return Math.min(Math.round(progress), 100);
 };
 
-/**
- * 파싱된 JSON에서 레시피 배열을 추출하는 함수
- */
 const extractRecipes = (parsedJson: any): Recipe[] => {
-  // recipes 키가 있는 경우
   if (parsedJson.recipes && Array.isArray(parsedJson.recipes)) {
     return parsedJson.recipes as Recipe[];
   }
 
-  // 직접 배열인 경우
   if (Array.isArray(parsedJson)) {
     return parsedJson as Recipe[];
   }
@@ -178,7 +156,6 @@ export const generateRecipes = async (params: RecipeGenerationParams, onProgress
 
   try {
     const responseText = await generateRecipesFromGemini(prompt, (chunk: string, fullText: string) => {
-      // JSON 내용을 숨기고 진행률만 계산해서 전달
       const progress = calculateProgress(fullText);
       onProgress?.(progress);
     });
@@ -192,14 +169,12 @@ export const generateRecipes = async (params: RecipeGenerationParams, onProgress
 
     const parsedResponse = JSON.parse(cleanedJsonString);
 
-    // 레시피 배열 추출 (recipes 키가 있거나 직접 배열인 경우 모두 처리)
     const recipes = extractRecipes(parsedResponse);
 
     if (!recipes || recipes.length === 0) {
       throw new Error("생성된 레시피가 없습니다.");
     }
 
-    // 완료 시 100% 진행률 전달
     onProgress?.(100);
 
     return recipes;

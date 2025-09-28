@@ -26,7 +26,6 @@ export const useRecipeGenerator = () => {
 
       try {
         const generatedRecipes = await generateRecipes(params, (progressValue: number) => {
-          // JSON 내용 대신 진행률만 받아서 상태 업데이트
           setProgress(progressValue);
         });
 
